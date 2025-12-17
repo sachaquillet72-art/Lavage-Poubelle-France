@@ -1,3 +1,5 @@
+https://lavage-poubelle-france-dymspjckkyacsshqwfb7hz.streamlit.app/
+
 # Analyse Villes — Streamlit App
 
 This project contains a Streamlit dashboard to analyze target cities for a local service.
@@ -28,3 +30,4 @@ Deploy on Streamlit Cloud:
 Notes:
 - If you want nicer map tiles from Mapbox, set the environment variable `MAPBOX_API_KEY` (or `MAPBOX_TOKEN`) in your Streamlit Cloud app settings. The app falls back to OpenStreetMap automatically when no token is provided.
 - In Streamlit Cloud app settings, set **Visibility** to Public (or "Anyone with link") if you want people to view the app without logging in.
+
