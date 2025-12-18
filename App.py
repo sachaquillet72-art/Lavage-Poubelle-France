@@ -226,27 +226,31 @@ if len(filtered_df) > 0:
 	# Renommage des colonnes
 	display_df.columns = [
 		'Ville', 'Département', 'Région', 'Score', 'Population', 
-		'60+ (%)', '60+ (nb)', 'Revenu médian', 
-		'Proprio (%)', 'Zone', 
+		'60+ (%)', '60+ (nb)', 'Revenu médian', 'Proprio (%)', 'Zone', 
 		'Foyers pot.', 'Clients pot.'
 	]
     
-	# Style
-	styled_df = display_df.style.applymap(
-		color_score, 
-		subset=['Score']
-	).format({
-		'Population': '{:,.0f}',
-		'Revenu médian': '{:,.0f} €',
-		'60+ (nb)': '{:,.0f}',
-		'Foyers pot.': '{:,.0f}',
-		'Clients pot.': '{:,.0f}',
-		'60+ (%)': '{:.1f}%',
-		'Proprio (%)': '{:.0f}%',
-		'Score': '{:.0f}/100'
-	})
-    
-	st.dataframe(styled_df, use_container_width=True, height=600)
+	# Affichage avec ou sans style selon la taille
+	if len(display_df) > 5000:
+		# Pour les grands ensembles de données, afficher sans style
+		st.info(f"⚠️ Affichage de {len(display_df):,} villes. Le style est désactivé pour améliorer les performances.")
+		st.dataframe(display_df, use_container_width=True, height=600)
+	else:
+		# Pour les petits ensembles, afficher avec style
+		styled_df = display_df.style.applymap(
+			color_score, 
+			subset=['Score']
+		).format({
+			'Population': '{:,.0f}',
+			'Revenu médian': '{:,.0f} €',
+			'60+ (nb)': '{:,.0f}',
+			'Foyers pot.': '{:,.0f}',
+			'Clients pot.': '{:,.0f}',
+			'60+ (%)': '{:.1f}%',
+			'Proprio (%)': '{:.0f}%',
+			'Score': '{:.0f}/100'
+		})
+		st.dataframe(styled_df, use_container_width=True, height=600)
     
 	# Bouton de téléchargement
 	csv = display_df.to_csv(index=False).encode('utf-8')
