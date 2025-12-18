@@ -94,6 +94,20 @@ def calculate_foyers(row):
 		'personnes60plus': nb_personnes_60plus
 	})
 
+# Fonctions utilitaires
+def get_score_emoji(score):
+	"""Retourne l'emoji selon le score"""
+	if score >= 80: return "🟢"
+	elif score >= 60: return "🔵"
+	elif score >= 40: return "🟡"
+	else: return "🔴"
+
+def score_to_rgb(score):
+	"""Convertit score en couleur RGB pour la carte"""
+	red = int(255 * (100 - score) / 100)
+	green = int(255 * score / 100)
+	return [red, green, 0, 160]
+
 # Chargement des données
 df = load_data()
 
@@ -207,14 +221,7 @@ if len(filtered_df) > 0:
 		st.markdown("### 📊 Par Score Global")
 		top_score = filtered_df.nlargest(min(20, len(filtered_df)), 'score')[['nom', 'score', 'departement', 'region']].reset_index(drop=True)
 		for idx, row in top_score.iterrows():
-			if row['score'] >= 80:
-				emoji = "🟢"
-			elif row['score'] >= 60:
-				emoji = "🔵"
-			elif row['score'] >= 40:
-				emoji = "🟡"
-			else:
-				emoji = "🔴"
+			emoji = get_score_emoji(row['score'])
 			st.markdown(f"{emoji} **{idx+1}. {row['nom']}** ({row['departement']}) - Score: **{row['score']}/100**")
 	
 	with col2:
@@ -231,15 +238,7 @@ if len(filtered_df) > 0 and len(filtered_df) <= 10000:
 	
 	# Préparer les données pour la carte
 	map_data = filtered_df[['lat', 'lon', 'nom', 'score', 'departement']].copy()
-	
-	# Fonction pour convertir score en couleur RGB
-	def score_to_color(score):
-		# Rouge (score bas) à Vert (score élevé)
-		red = int(255 * (100 - score) / 100)
-		green = int(255 * score / 100)
-		return [red, green, 0, 160]  # RGBA
-	
-	map_data['color'] = map_data['score'].apply(score_to_color)
+	map_data['color'] = map_data['score'].apply(score_to_rgb)
 	
 	# Créer la carte pydeck
 	layer = pdk.Layer(
@@ -267,6 +266,128 @@ if len(filtered_df) > 0 and len(filtered_df) <= 10000:
 	st.caption("💡 Survolez les points pour voir les détails. Vert = score élevé, Rouge = score bas")
 elif len(filtered_df) > 10000:
 	st.info("⚠️ Carte désactivée pour plus de 10,000 villes. Utilisez les filtres pour réduire le nombre de résultats.")
+
+st.markdown("---")
+
+# Dashboard Analytique
+if len(filtered_df) > 0:
+	st.subheader("📊 Analyse par Zones à Fort Potentiel")
+	
+	tab1, tab2, tab3 = st.tabs(["🌍 Par Région", "📍 Par Département", "📈 Synthèse"])
+	
+	with tab1:
+		st.markdown("### Clients Potentiels par Région")
+		
+		# Agrégation par région
+		region_stats = filtered_df.groupby('region').agg({
+			'clientsPotentiels': 'sum',
+			'population': 'sum',
+			'score': 'mean',
+			'nom': 'count'
+		}).round(0)
+		region_stats.columns = ['Clients Potentiels', 'Population', 'Score Moyen', 'Nb Villes']
+		region_stats = region_stats.sort_values('Clients Potentiels', ascending=False)
+		
+		col1, col2 = st.columns([2, 1])
+		
+		with col1:
+			st.bar_chart(region_stats['Clients Potentiels'])
+		
+		with col2:
+			st.dataframe(
+				region_stats.style.format({
+					'Clients Potentiels': '{:,.0f}',
+					'Population': '{:,.0f}',
+					'Score Moyen': '{:.1f}',
+					'Nb Villes': '{:.0f}'
+				}),
+				use_container_width=True
+			)
+	
+	with tab2:
+		st.markdown("### Top 15 Départements à Fort Potentiel")
+		
+		# Agrégation par département
+		dept_stats = filtered_df.groupby('departement').agg({
+			'clientsPotentiels': 'sum',
+			'score': 'mean',
+			'nom': 'count',
+			'population': 'sum'
+		}).round(0)
+		dept_stats.columns = ['Clients Potentiels', 'Score Moyen', 'Nb Villes', 'Population']
+		top_depts = dept_stats.nlargest(15, 'Clients Potentiels')
+		
+		col1, col2 = st.columns([2, 1])
+		
+		with col1:
+			st.bar_chart(top_depts['Clients Potentiels'])
+		
+		with col2:
+			st.dataframe(
+				top_depts.style.format({
+					'Clients Potentiels': '{:,.0f}',
+					'Score Moyen': '{:.1f}',
+					'Nb Villes': '{:.0f}',
+					'Population': '{:,.0f}'
+				}),
+				use_container_width=True
+			)
+	
+	with tab3:
+		st.markdown("### Synthèse des Zones Prioritaires")
+		
+		col1, col2, col3 = st.columns(3)
+		
+		with col1:
+			if len(region_stats) > 0:
+				best_region = region_stats.index[0]
+				best_region_clients = region_stats.iloc[0]['Clients Potentiels']
+				st.metric(
+					"🏆 Meilleure Région",
+					best_region,
+					f"{best_region_clients:,.0f} clients"
+				)
+		
+		with col2:
+			if len(top_depts) > 0:
+				best_dept = top_depts.index[0]
+				best_dept_clients = top_depts.iloc[0]['Clients Potentiels']
+				st.metric(
+					"🏆 Meilleur Département",
+					best_dept,
+					f"{best_dept_clients:,.0f} clients"
+				)
+		
+		with col3:
+			avg_clients_per_city = filtered_df['clientsPotentiels'].mean()
+			st.metric(
+				"📊 Moyenne par Ville",
+				f"{avg_clients_per_city:,.0f}",
+				"clients potentiels"
+			)
+		
+		st.markdown("---")
+		
+		# Recommandations
+		st.markdown("### 💡 Recommandations Stratégiques")
+		
+		if len(region_stats) > 0 and len(top_depts) > 0:
+			top_3_regions = region_stats.head(3)
+			top_3_depts = top_depts.head(3)
+			
+			st.markdown(f"""
+			**Zones prioritaires pour le déploiement :**
+			
+			🎯 **Régions à cibler en priorité :**
+			1. **{top_3_regions.index[0]}** - {top_3_regions.iloc[0]['Clients Potentiels']:,.0f} clients potentiels ({top_3_regions.iloc[0]['Nb Villes']:.0f} villes)
+			2. **{top_3_regions.index[1] if len(top_3_regions) > 1 else 'N/A'}** - {top_3_regions.iloc[1]['Clients Potentiels']:,.0f if len(top_3_regions) > 1 else 0} clients potentiels
+			3. **{top_3_regions.index[2] if len(top_3_regions) > 2 else 'N/A'}** - {top_3_regions.iloc[2]['Clients Potentiels']:,.0f if len(top_3_regions) > 2 else 0} clients potentiels
+			
+			📍 **Départements à fort ROI :**
+			1. **{top_3_depts.index[0]}** - {top_3_depts.iloc[0]['Clients Potentiels']:,.0f} clients (Score moyen: {top_3_depts.iloc[0]['Score Moyen']:.1f}/100)
+			2. **{top_3_depts.index[1] if len(top_3_depts) > 1 else 'N/A'}** - {top_3_depts.iloc[1]['Clients Potentiels']:,.0f if len(top_3_depts) > 1 else 0} clients
+			3. **{top_3_depts.index[2] if len(top_3_depts) > 2 else 'N/A'}** - {top_3_depts.iloc[2]['Clients Potentiels']:,.0f if len(top_3_depts) > 2 else 0} clients
+			""")
 
 st.markdown("---")
 
