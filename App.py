@@ -58,25 +58,32 @@ def load_data():
 	return df
 
 def calculate_score(row):
-	"""Calcul du score pondéré"""
-	poids_pop60 = 0.35
-	poids_revenu = 0.25
-	poids_proprio = 0.20
-	poids_zone = 0.15
-	poids_pop = 0.05
+	"""Calcul du score pondéré adapté au nettoyage de poubelles"""
+	
+	# Pondérations adaptées au nettoyage de poubelles
+	poids_maisons = 0.35        # Critère principal : poubelles individuelles
+	poids_proprio = 0.25        # Stabilité clientèle, investissement entretien
+	poids_pop60 = 0.20          # Cible principale, besoin réel
+	poids_revenu = 0.10         # Pouvoir d'achat
+	poids_pop = 0.05            # Taille du marché
+	poids_familles = 0.05       # Familles avec enfants, besoin d'hygiène
     
+	# Calcul des scores individuels (normalisés sur 100)
+	score_maisons = min((row['pct_maison'] / 90) * 100, 100)
+	score_proprio = min((row['tauxProprietaires'] / 70) * 100, 100)
 	score_pop60 = min((row['plus60ans'] / 35) * 100, 100)
 	score_revenu = min((row['revenuMedian'] / 27000) * 100, 100)
-	score_proprio = min((row['tauxProprietaires'] / 65) * 100, 100)
-	score_zone = min(((row['zoneChalandise'] - 300) / 120) * 100, 100)
 	score_pop = min((row['population'] / 150000) * 100, 100)
+	score_familles = min((row['pct_30_44'] / 25) * 100, 100)
     
+	# Score total pondéré
 	score_total = (
+		score_maisons * poids_maisons +
+		score_proprio * poids_proprio +
 		score_pop60 * poids_pop60 +
 		score_revenu * poids_revenu +
-		score_proprio * poids_proprio +
-		score_zone * poids_zone +
-		score_pop * poids_pop
+		score_pop * poids_pop +
+		score_familles * poids_familles
 	)
     
 	return round(score_total)
@@ -394,12 +401,19 @@ st.markdown("---")
 # Méthodologie
 with st.expander("📊 Méthodologie de scoring", expanded=False):
 	st.markdown("""
-	**Pondération du score :**
-	- 🎯 **35%** Population 60+ ans (cible principale)
-	- 💰 **25%** Revenu médian (pouvoir d'achat)
-	- 🏠 **20%** Taux de propriétaires (stabilité, entretien)
-	- 📍 **15%** Zone de chalandise (min 300 personnes)
-	- 👥 **5%** Population totale (marché potentiel)
+	**Pondération du score (adaptée au nettoyage de poubelles) :**
+	- 🏠 **35%** % de maisons (poubelles individuelles vs collectives)
+	- 👤 **25%** Taux de propriétaires (stabilité, investissement entretien)
+	- 🎯 **20%** Population 60+ ans (cible principale, besoin réel)
+	- 💰 **10%** Revenu médian (capacité à payer le service)
+	- 👥 **5%** Population totale (taille du marché)
+	- 👨‍👩‍👧 **5%** Familles 30-44 ans (enfants, besoin d'hygiène)
+    
+	**Pourquoi ces critères ?**
+	- **Maisons** : Les maisons ont des poubelles individuelles (vs poubelles collectives en appartement)
+	- **Propriétaires** : Investissent plus dans l'entretien de leur propriété
+	- **60+ ans** : Difficulté à nettoyer, pouvoir d'achat, besoin réel
+	- **Familles** : Plus de déchets, valorisent l'hygiène
     
 	**Calcul des clients potentiels :**
 	- Taux de pénétration estimé : 10-15% des foyers de 60+ ans
