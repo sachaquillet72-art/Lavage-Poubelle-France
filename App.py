@@ -82,29 +82,61 @@ def load_data():
 	return df
 
 def calculate_score(row):
-	"""Calcul du score pondéré adapté au nettoyage de poubelles"""
-	poids_maisons = 0.35
-	poids_proprio = 0.25
-	poids_pop60 = 0.20
-	poids_revenu = 0.10
-	poids_pop = 0.05
-	poids_familles = 0.05
+	"""Calcul du score pondéré adapté au nettoyage de poubelles - favorise les périphéries"""
+	
+	# Pondérations adaptées (périphéries > centres-villes)
+	poids_maisons = 0.40        # AUGMENTÉ - Critère principal pour périphéries
+	poids_proprio = 0.25        # Stabilité clientèle
+	poids_pop60 = 0.15          # RÉDUIT - Moins critique que le type d'habitat
+	poids_revenu = 0.10         # Pouvoir d'achat
+	poids_familles = 0.10       # AUGMENTÉ - Familles en périphérie
+	# Population totale supprimée - favorise petites villes périphériques
     
+	# Calcul des scores individuels
 	score_maisons = min((row['pct_maison'] / 90) * 100, 100)
 	score_proprio = min((row['tauxProprietaires'] / 70) * 100, 100)
 	score_pop60 = min((row['plus60ans'] / 35) * 100, 100)
 	score_revenu = min((row['revenuMedian'] / 27000) * 100, 100)
-	score_pop = min((row['population'] / 150000) * 100, 100)
 	score_familles = min((row['pct_30_44'] / 25) * 100, 100)
     
-	score_total = (
+	# BONUS PÉRIPHÉRIE : Favorise zones pavillonnaires (>70% maisons)
+	bonus_peripherie = 0
+	if row['pct_maison'] > 80:
+		bonus_peripherie = 15  # Bonus important pour zones très pavillonnaires
+	elif row['pct_maison'] > 70:
+		bonus_peripherie = 10  # Bonus moyen
+	elif row['pct_maison'] > 60:
+		bonus_peripherie = 5   # Petit bonus
+    
+	# PÉNALITÉ CENTRE-VILLE : Pénalise zones denses (>60% appartements)
+	penalite_centre = 0
+	if row['pct_appartement'] > 70:
+		penalite_centre = -20  # Forte pénalité pour centres très denses
+	elif row['pct_appartement'] > 60:
+		penalite_centre = -15  # Pénalité moyenne
+	elif row['pct_appartement'] > 50:
+		penalite_centre = -10  # Petite pénalité
+    
+	# PÉNALITÉ GRANDE VILLE : Les très grandes villes = centres denses
+	penalite_grande_ville = 0
+	if row['population'] > 100000:
+		penalite_grande_ville = -10  # Grandes villes = centres denses
+	elif row['population'] > 50000:
+		penalite_grande_ville = -5   # Villes moyennes
+    
+	# Score total pondéré avec bonus/pénalités
+	score_base = (
 		score_maisons * poids_maisons +
 		score_proprio * poids_proprio +
 		score_pop60 * poids_pop60 +
 		score_revenu * poids_revenu +
-		score_pop * poids_pop +
 		score_familles * poids_familles
 	)
+    
+	score_total = score_base + bonus_peripherie + penalite_centre + penalite_grande_ville
+    
+	# Limiter entre 0 et 100
+	score_total = max(0, min(100, score_total))
     
 	return round(score_total)
 
@@ -437,15 +469,32 @@ else:
 st.markdown("---")
 with st.expander("📊 Méthodologie & Calculs", expanded=False):
 	st.markdown("""
-	### Scoring (0-100 points)
+	### Scoring (0-100 points) - Optimisé pour Périphéries
 	
-	**Pondération adaptée au nettoyage de poubelles :**
-	- 🏠 **35%** % de maisons (poubelles individuelles vs collectives)
-	- 👤 **25%** Taux de propriétaires (stabilité, investissement)
-	- 🎯 **20%** Population 60+ ans (cible principale, besoin réel)
+	**Pondération adaptée (favorise banlieues/périphéries) :**
+	- 🏠 **40%** % de maisons (AUGMENTÉ - zones pavillonnaires)
+	- 👤 **25%** Taux de propriétaires (stabilité)
+	- 🎯 **15%** Population 60+ ans (cible principale)
 	- 💰 **10%** Revenu médian (capacité à payer)
-	- 👥 **5%** Population totale (taille du marché)
-	- 👨‍👩‍👧 **5%** Familles 30-44 ans (enfants, hygiène)
+	- 👨‍👩‍👧 **10%** Familles 30-44 ans (AUGMENTÉ - familles en périphérie)
+	
+	**🟢 BONUS PÉRIPHÉRIE (zones pavillonnaires) :**
+	- **+15 points** si >80% de maisons (zones très pavillonnaires)
+	- **+10 points** si 70-80% de maisons
+	- **+5 points** si 60-70% de maisons
+	
+	**🔴 PÉNALITÉS CENTRES-VILLES (zones denses) :**
+	- **-20 points** si >70% d'appartements (centres très denses)
+	- **-15 points** si 60-70% d'appartements
+	- **-10 points** si 50-60% d'appartements
+	- **-10 points** si population >100,000 (grandes villes denses)
+	- **-5 points** si population 50,000-100,000
+	
+	**Pourquoi favoriser les périphéries ?**
+	- ✅ **Plus de maisons** = poubelles individuelles (vs collectives)
+	- ✅ **Meilleure circulation** = accès facile pour le service
+	- ✅ **Zones pavillonnaires** = clients propriétaires stables
+	- ❌ **Centres-villes** = appartements, poubelles collectives, circulation difficile
 	
 	### Calcul du Revenu Annuel
 	
