@@ -52,65 +52,8 @@ st.markdown("""
 # Données des villes
 @st.cache_data
 def load_data():
-	villes = [
-		# Nouvelle-Aquitaine
-		{"nom": "La Rochelle", "population": 77196, "plus60ans": 26.5, "revenuMedian": 22100, "tauxProprietaires": 52, "region": "Nouvelle-Aquitaine", "zoneChalandise": 350, "departement": "Charente-Maritime"},
-		{"nom": "Rochefort", "population": 24118, "plus60ans": 30.2, "revenuMedian": 19800, "tauxProprietaires": 55, "region": "Nouvelle-Aquitaine", "zoneChalandise": 320, "departement": "Charente-Maritime"},
-		{"nom": "Royan", "population": 18934, "plus60ans": 35.8, "revenuMedian": 21300, "tauxProprietaires": 58, "region": "Nouvelle-Aquitaine", "zoneChalandise": 380, "departement": "Charente-Maritime"},
-		{"nom": "Saintes", "population": 25268, "plus60ans": 28.4, "revenuMedian": 20100, "tauxProprietaires": 53, "region": "Nouvelle-Aquitaine", "zoneChalandise": 340, "departement": "Charente-Maritime"},
-		{"nom": "Cognac", "population": 18806, "plus60ans": 27.9, "revenuMedian": 19500, "tauxProprietaires": 50, "region": "Nouvelle-Aquitaine", "zoneChalandise": 310, "departement": "Charente"},
-		{"nom": "Angoulême", "population": 41740, "plus60ans": 26.8, "revenuMedian": 19900, "tauxProprietaires": 48, "region": "Nouvelle-Aquitaine", "zoneChalandise": 360, "departement": "Charente"},
-		{"nom": "Niort", "population": 58660, "plus60ans": 24.2, "revenuMedian": 21200, "tauxProprietaires": 51, "region": "Nouvelle-Aquitaine", "zoneChalandise": 330, "departement": "Deux-Sèvres"},
-		{"nom": "Bressuire", "population": 19882, "plus60ans": 27.5, "revenuMedian": 20400, "tauxProprietaires": 61, "region": "Nouvelle-Aquitaine", "zoneChalandise": 325, "departement": "Deux-Sèvres"},
-		{"nom": "Périgueux", "population": 29560, "plus60ans": 29.1, "revenuMedian": 19700, "tauxProprietaires": 51, "region": "Nouvelle-Aquitaine", "zoneChalandise": 325, "departement": "Dordogne"},
-		{"nom": "Bergerac", "population": 27680, "plus60ans": 30.8, "revenuMedian": 19200, "tauxProprietaires": 54, "region": "Nouvelle-Aquitaine", "zoneChalandise": 320, "departement": "Dordogne"},
-		{"nom": "Bayonne", "population": 51228, "plus60ans": 27.8, "revenuMedian": 21400, "tauxProprietaires": 48, "region": "Nouvelle-Aquitaine", "zoneChalandise": 345, "departement": "Pyrénées-Atlantiques"},
-		{"nom": "Biarritz", "population": 25532, "plus60ans": 33.2, "revenuMedian": 24100, "tauxProprietaires": 56, "region": "Nouvelle-Aquitaine", "zoneChalandise": 365, "departement": "Pyrénées-Atlantiques"},
-		{"nom": "Pau", "population": 77215, "plus60ans": 26.1, "revenuMedian": 21100, "tauxProprietaires": 47, "region": "Nouvelle-Aquitaine", "zoneChalandise": 360, "departement": "Pyrénées-Atlantiques"},
-		{"nom": "Limoges", "population": 132175, "plus60ans": 27.4, "revenuMedian": 20100, "tauxProprietaires": 48, "region": "Nouvelle-Aquitaine", "zoneChalandise": 405, "departement": "Haute-Vienne"},
-        
-		# Bretagne
-		{"nom": "Vannes", "population": 54020, "plus60ans": 25.1, "revenuMedian": 23400, "tauxProprietaires": 54, "region": "Bretagne", "zoneChalandise": 365, "departement": "Morbihan"},
-		{"nom": "Lorient", "population": 57662, "plus60ans": 24.3, "revenuMedian": 20800, "tauxProprietaires": 48, "region": "Bretagne", "zoneChalandise": 340, "departement": "Morbihan"},
-		{"nom": "Quimper", "population": 63473, "plus60ans": 25.8, "revenuMedian": 21900, "tauxProprietaires": 52, "region": "Bretagne", "zoneChalandise": 355, "departement": "Finistère"},
-		{"nom": "Saint-Brieuc", "population": 45207, "plus60ans": 26.4, "revenuMedian": 20600, "tauxProprietaires": 49, "region": "Bretagne", "zoneChalandise": 335, "departement": "Côtes-d'Armor"},
-		{"nom": "Brest", "population": 139456, "plus60ans": 22.1, "revenuMedian": 20200, "tauxProprietaires": 45, "region": "Bretagne", "zoneChalandise": 420, "departement": "Finistère"},
-		{"nom": "Rennes", "population": 221272, "plus60ans": 19.8, "revenuMedian": 22300, "tauxProprietaires": 42, "region": "Bretagne", "zoneChalandise": 445, "departement": "Ille-et-Vilaine"},
-		{"nom": "Saint-Malo", "population": 46803, "plus60ans": 28.6, "revenuMedian": 22700, "tauxProprietaires": 53, "region": "Bretagne", "zoneChalandise": 345, "departement": "Ille-et-Vilaine"},
-        
-		# Pays de la Loire
-		{"nom": "La Roche-sur-Yon", "population": 54878, "plus60ans": 25.9, "revenuMedian": 21700, "tauxProprietaires": 54, "region": "Pays de la Loire", "zoneChalandise": 345, "departement": "Vendée"},
-		{"nom": "Cholet", "population": 54186, "plus60ans": 26.2, "revenuMedian": 21100, "tauxProprietaires": 56, "region": "Pays de la Loire", "zoneChalandise": 340, "departement": "Maine-et-Loire"},
-		{"nom": "Laval", "population": 49728, "plus60ans": 25.3, "revenuMedian": 21400, "tauxProprietaires": 53, "region": "Pays de la Loire", "zoneChalandise": 335, "departement": "Mayenne"},
-		{"nom": "Le Mans", "population": 143813, "plus60ans": 23.8, "revenuMedian": 20500, "tauxProprietaires": 47, "region": "Pays de la Loire", "zoneChalandise": 425, "departement": "Sarthe"},
-		{"nom": "Nantes", "population": 320732, "plus60ans": 20.5, "revenuMedian": 22100, "tauxProprietaires": 41, "region": "Pays de la Loire", "zoneChalandise": 485, "departement": "Loire-Atlantique"},
-		{"nom": "Angers", "population": 154508, "plus60ans": 22.7, "revenuMedian": 21300, "tauxProprietaires": 44, "region": "Pays de la Loire", "zoneChalandise": 430, "departement": "Maine-et-Loire"},
-		{"nom": "Les Sables-d'Olonne", "population": 45826, "plus60ans": 32.8, "revenuMedian": 21900, "tauxProprietaires": 61, "region": "Pays de la Loire", "zoneChalandise": 360, "departement": "Vendée"},
-        
-		# Provence-Alpes-Côte d'Azur
-		{"nom": "Fréjus", "population": 54458, "plus60ans": 30.8, "revenuMedian": 21800, "tauxProprietaires": 59, "region": "Provence-Alpes-Côte d'Azur", "zoneChalandise": 365, "departement": "Var"},
-		{"nom": "Hyères", "population": 56199, "plus60ans": 32.1, "revenuMedian": 21400, "tauxProprietaires": 62, "region": "Provence-Alpes-Côte d'Azur", "zoneChalandise": 370, "departement": "Var"},
-		{"nom": "Nice", "population": 341522, "plus60ans": 26.7, "revenuMedian": 21200, "tauxProprietaires": 44, "region": "Provence-Alpes-Côte d'Azur", "zoneChalandise": 485, "departement": "Alpes-Maritimes"},
-		{"nom": "Marseille", "population": 873076, "plus60ans": 21.8, "revenuMedian": 18900, "tauxProprietaires": 42, "region": "Provence-Alpes-Côte d'Azur", "zoneChalandise": 595, "departement": "Bouches-du-Rhône"},
-		{"nom": "Toulon", "population": 176198, "plus60ans": 26.3, "revenuMedian": 19600, "tauxProprietaires": 46, "region": "Provence-Alpes-Côte d'Azur", "zoneChalandise": 440, "departement": "Var"},
-		{"nom": "Aix-en-Provence", "population": 145721, "plus60ans": 22.9, "revenuMedian": 24800, "tauxProprietaires": 47, "region": "Provence-Alpes-Côte d'Azur", "zoneChalandise": 425, "departement": "Bouches-du-Rhône"},
-		{"nom": "Cannes", "population": 74545, "plus60ans": 29.2, "revenuMedian": 23400, "tauxProprietaires": 48, "region": "Provence-Alpes-Côte d'Azur", "zoneChalandise": 370, "departement": "Alpes-Maritimes"},
-        
-		# Occitanie
-		{"nom": "Toulouse", "population": 498003, "plus60ans": 18.9, "revenuMedian": 22400, "tauxProprietaires": 39, "region": "Occitanie", "zoneChalandise": 520, "departement": "Haute-Garonne"},
-		{"nom": "Montpellier", "population": 299096, "plus60ans": 20.3, "revenuMedian": 20900, "tauxProprietaires": 38, "region": "Occitanie", "zoneChalandise": 475, "departement": "Hérault"},
-		{"nom": "Nîmes", "population": 151001, "plus60ans": 25.1, "revenuMedian": 18600, "tauxProprietaires": 45, "region": "Occitanie", "zoneChalandise": 425, "departement": "Gard"},
-		{"nom": "Perpignan", "population": 121934, "plus60ans": 26.8, "revenuMedian": 18500, "tauxProprietaires": 48, "region": "Occitanie", "zoneChalandise": 400, "departement": "Pyrénées-Orientales"},
-		{"nom": "Béziers", "population": 77177, "plus60ans": 28.7, "revenuMedian": 18900, "tauxProprietaires": 51, "region": "Occitanie", "zoneChalandise": 365, "departement": "Hérault"},
-        
-		# Auvergne-Rhône-Alpes
-		{"nom": "Lyon", "population": 522969, "plus60ans": 19.6, "revenuMedian": 22800, "tauxProprietaires": 37, "region": "Auvergne-Rhône-Alpes", "zoneChalandise": 530, "departement": "Rhône"},
-		{"nom": "Grenoble", "population": 158454, "plus60ans": 20.8, "revenuMedian": 21400, "tauxProprietaires": 41, "region": "Auvergne-Rhône-Alpes", "zoneChalandise": 430, "departement": "Isère"},
-		{"nom": "Annecy", "population": 128199, "plus60ans": 21.8, "revenuMedian": 26300, "tauxProprietaires": 52, "region": "Auvergne-Rhône-Alpes", "zoneChalandise": 410, "departement": "Haute-Savoie"},
-		{"nom": "Clermont-Ferrand", "population": 147284, "plus60ans": 22.4, "revenuMedian": 21100, "tauxProprietaires": 43, "region": "Auvergne-Rhône-Alpes", "zoneChalandise": 420, "departement": "Puy-de-Dôme"},
-	]
-    
-	df = pd.DataFrame(villes)
+	# Charger les données depuis le fichier CSV
+	df = pd.read_csv('data.csv', sep=';')
 	return df
 
 def calculate_score(row):
