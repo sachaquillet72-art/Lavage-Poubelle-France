@@ -22,11 +22,27 @@ def main():
         df = mod.load_data()
         print(f"OK: load_data returned {len(df)} rows")
         # quick sanity checks
-        required = ["City", "Population"]
-        missing = [c for c in required if c not in df.columns]
+        # Accept common column name variants so the app can be localized.
+        column_aliases = {
+            "City": ["City", "Ville", "nom", "city"],
+            "Population": ["Population", "population", "pop", "population_total"],
+        }
+
+        missing = []
+        used = {}
+        for logical, aliases in column_aliases.items():
+            found = next((a for a in aliases if a in df.columns), None)
+            if not found:
+                missing.append(logical)
+            else:
+                used[logical] = found
+
         if missing:
-            print("ERROR: Missing required columns:", missing)
+            print("ERROR: Missing required logical columns:", missing)
+            print("Available columns:", list(df.columns))
             return 3
+
+        print("INFO: using columns:", used)
         return 0
     except Exception as e:
         print("ERROR while validating app:", e)
