@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import pydeck as pdk
 
 # Configuration de la page
 st.set_page_config(
@@ -172,7 +173,7 @@ filtered_df = filtered_df.sort_values(
 )
 
 # Statistiques globales
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
 	st.metric("🏙️ Villes analysées", len(filtered_df))
@@ -183,7 +184,91 @@ with col2:
 
 with col3:
 	total_clients = filtered_df['clientsPotentiels'].sum()
-	st.metric("👥 Clients potentiels total", f"{total_clients:,}")
+	st.metric("👥 Clients potentiels", f"{total_clients:,}")
+
+with col4:
+	if len(filtered_df) > 0:
+		best_city = filtered_df.nlargest(1, 'score').iloc[0]
+		st.metric("🥇 Meilleure ville", best_city['nom'], f"{best_city['score']}/100")
+	else:
+		st.metric("🥇 Meilleure ville", "N/A")
+
+with col5:
+	total_pop = filtered_df['population'].sum()
+	st.metric("👥 Population totale", f"{total_pop:,}")
+
+# Classement des meilleures villes
+if len(filtered_df) > 0:
+	st.subheader("🏆 Top 20 des Meilleures Villes")
+	
+	col1, col2 = st.columns(2)
+	
+	with col1:
+		st.markdown("### 📊 Par Score Global")
+		top_score = filtered_df.nlargest(min(20, len(filtered_df)), 'score')[['nom', 'score', 'departement', 'region']].reset_index(drop=True)
+		for idx, row in top_score.iterrows():
+			if row['score'] >= 80:
+				emoji = "🟢"
+			elif row['score'] >= 60:
+				emoji = "🔵"
+			elif row['score'] >= 40:
+				emoji = "🟡"
+			else:
+				emoji = "🔴"
+			st.markdown(f"{emoji} **{idx+1}. {row['nom']}** ({row['departement']}) - Score: **{row['score']}/100**")
+	
+	with col2:
+		st.markdown("### 👥 Par Clients Potentiels")
+		top_clients = filtered_df.nlargest(min(20, len(filtered_df)), 'clientsPotentiels')[['nom', 'clientsPotentiels', 'departement']].reset_index(drop=True)
+		for idx, row in top_clients.iterrows():
+			st.markdown(f"**{idx+1}. {row['nom']}** ({row['departement']}) - **{row['clientsPotentiels']:,}** clients")
+
+st.markdown("---")
+
+# Carte interactive
+if len(filtered_df) > 0 and len(filtered_df) <= 10000:
+	st.subheader("🗺️ Carte Interactive des Villes")
+	
+	# Préparer les données pour la carte
+	map_data = filtered_df[['lat', 'lon', 'nom', 'score', 'departement']].copy()
+	
+	# Fonction pour convertir score en couleur RGB
+	def score_to_color(score):
+		# Rouge (score bas) à Vert (score élevé)
+		red = int(255 * (100 - score) / 100)
+		green = int(255 * score / 100)
+		return [red, green, 0, 160]  # RGBA
+	
+	map_data['color'] = map_data['score'].apply(score_to_color)
+	
+	# Créer la carte pydeck
+	layer = pdk.Layer(
+		'ScatterplotLayer',
+		data=map_data,
+		get_position='[lon, lat]',
+		get_color='color',
+		get_radius=2000,
+		pickable=True,
+	)
+	
+	view_state = pdk.ViewState(
+		latitude=46.603354,  # Centre de la France
+		longitude=1.888334,
+		zoom=5,
+		pitch=0,
+	)
+	
+	st.pydeck_chart(pdk.Deck(
+		layers=[layer],
+		initial_view_state=view_state,
+		tooltip={"text": "{nom} ({departement})\nScore: {score}/100"}
+	))
+	
+	st.caption("💡 Survolez les points pour voir les détails. Vert = score élevé, Rouge = score bas")
+elif len(filtered_df) > 10000:
+	st.info("⚠️ Carte désactivée pour plus de 10,000 villes. Utilisez les filtres pour réduire le nombre de résultats.")
+
+st.markdown("---")
 
 # Méthodologie
 with st.expander("📊 Méthodologie de scoring", expanded=False):
