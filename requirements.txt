@@ -4,3 +4,4 @@ numpy
 pydeck
 faker
 requests
+plotly

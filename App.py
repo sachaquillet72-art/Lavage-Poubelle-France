@@ -2,50 +2,75 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import pydeck as pdk
+import plotly.express as px
+import plotly.graph_objects as go
 
 # Configuration de la page
 st.set_page_config(
-	page_title="Analyse des Villes Potentielles",
-	page_icon="📍",
-	layout="wide"
+	page_title="Analyse Marché - Nettoyage Poubelles",
+	page_icon="🗑️",
+	layout="wide",
+	initial_sidebar_state="expanded"
 )
 
-# CSS personnalisé
+# CSS personnalisé professionnel
 st.markdown("""
 <style>
+	/* Design premium */
 	.main-header {
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		padding: 2rem;
-		border-radius: 10px;
+		background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+		padding: 2.5rem;
+		border-radius: 15px;
 		color: white;
 		margin-bottom: 2rem;
+		box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 	}
-	.metric-card {
+	
+	.priority-a {
+		background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+		color: white;
+		padding: 0.5rem 1rem;
+		border-radius: 8px;
+		font-weight: bold;
+		display: inline-block;
+	}
+	
+	.priority-b {
+		background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+		color: white;
+		padding: 0.5rem 1rem;
+		border-radius: 8px;
+		font-weight: bold;
+		display: inline-block;
+	}
+	
+	.priority-c {
+		background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+		color: white;
+		padding: 0.5rem 1rem;
+		border-radius: 8px;
+		font-weight: bold;
+		display: inline-block;
+	}
+	
+	.priority-d {
+		background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+		color: white;
+		padding: 0.5rem 1rem;
+		border-radius: 8px;
+		font-weight: bold;
+		display: inline-block;
+	}
+	
+	.stMetric {
 		background: white;
-		padding: 1.5rem;
+		padding: 1rem;
 		border-radius: 10px;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 	}
-	.score-high {
-		background-color: #d4edda;
-		color: #155724;
-		padding: 0.5rem;
-		border-radius: 5px;
-		font-weight: bold;
-	}
-	.score-medium {
-		background-color: #d1ecf1;
-		color: #0c5460;
-		padding: 0.5rem;
-		border-radius: 5px;
-		font-weight: bold;
-	}
-	.score-low {
-		background-color: #fff3cd;
-		color: #856404;
-		padding: 0.5rem;
-		border-radius: 5px;
-		font-weight: bold;
+	
+	h1, h2, h3 {
+		color: #1e3c72;
 	}
 </style>
 """, unsafe_allow_html=True)
@@ -53,22 +78,18 @@ st.markdown("""
 # Données des villes
 @st.cache_data
 def load_data():
-	# Charger les données depuis le fichier CSV
 	df = pd.read_csv('data.csv', sep=';')
 	return df
 
 def calculate_score(row):
 	"""Calcul du score pondéré adapté au nettoyage de poubelles"""
-	
-	# Pondérations adaptées au nettoyage de poubelles
-	poids_maisons = 0.35        # Critère principal : poubelles individuelles
-	poids_proprio = 0.25        # Stabilité clientèle, investissement entretien
-	poids_pop60 = 0.20          # Cible principale, besoin réel
-	poids_revenu = 0.10         # Pouvoir d'achat
-	poids_pop = 0.05            # Taille du marché
-	poids_familles = 0.05       # Familles avec enfants, besoin d'hygiène
+	poids_maisons = 0.35
+	poids_proprio = 0.25
+	poids_pop60 = 0.20
+	poids_revenu = 0.10
+	poids_pop = 0.05
+	poids_familles = 0.05
     
-	# Calcul des scores individuels (normalisés sur 100)
 	score_maisons = min((row['pct_maison'] / 90) * 100, 100)
 	score_proprio = min((row['tauxProprietaires'] / 70) * 100, 100)
 	score_pop60 = min((row['plus60ans'] / 35) * 100, 100)
@@ -76,7 +97,6 @@ def calculate_score(row):
 	score_pop = min((row['population'] / 150000) * 100, 100)
 	score_familles = min((row['pct_30_44'] / 25) * 100, 100)
     
-	# Score total pondéré
 	score_total = (
 		score_maisons * poids_maisons +
 		score_proprio * poids_proprio +
@@ -101,16 +121,51 @@ def calculate_foyers(row):
 		'personnes60plus': nb_personnes_60plus
 	})
 
+def calculate_revenue(row):
+	"""Calcul du revenu annuel estimé"""
+	prix_mensuel = 15  # €/mois par client
+	revenu_annuel = row['clientsPotentiels'] * prix_mensuel * 12
+	return revenu_annuel
+
+def get_priority_level(score, revenue):
+	"""Détermination du niveau de priorité"""
+	if score >= 75 and revenue >= 50000:
+		return "A"
+	elif score >= 60 and revenue >= 30000:
+		return "B"
+	elif score >= 45:
+		return "C"
+	else:
+		return "D"
+
+def get_priority_label(priority):
+	"""Label complet de priorité"""
+	labels = {
+		"A": "🟢 A - Priorité Maximale",
+		"B": "🔵 B - Priorité Élevée",
+		"C": "🟡 C - Potentiel Moyen",
+		"D": "🔴 D - Faible Priorité"
+	}
+	return labels.get(priority, "N/A")
+
+def get_saturation(row):
+	"""Indicateur de saturation marché"""
+	ratio = row['clientsPotentiels'] / row['population'] if row['population'] > 0 else 0
+	if ratio > 0.05:
+		return "🟢 Fort Potentiel"
+	elif ratio > 0.03:
+		return "🟡 Potentiel Moyen"
+	else:
+		return "🔴 Faible Potentiel"
+
 # Fonctions utilitaires
 def get_score_emoji(score):
-	"""Retourne l'emoji selon le score"""
 	if score >= 80: return "🟢"
 	elif score >= 60: return "🔵"
 	elif score >= 40: return "🟡"
 	else: return "🔴"
 
 def score_to_rgb(score):
-	"""Convertit score en couleur RGB pour la carte"""
 	red = int(255 * (100 - score) / 100)
 	green = int(255 * score / 100)
 	return [red, green, 0, 160]
@@ -121,23 +176,33 @@ df = load_data()
 # Calcul du score et des foyers
 df['score'] = df.apply(calculate_score, axis=1)
 df[['foyersPotentiels', 'clientsPotentiels', 'personnes60plus']] = df.apply(calculate_foyers, axis=1)
+df['revenuAnnuel'] = df.apply(calculate_revenue, axis=1)
+df['priorite'] = df.apply(lambda row: get_priority_level(row['score'], row['revenuAnnuel']), axis=1)
+df['saturation'] = df.apply(get_saturation, axis=1)
 
-# Header
+# Header professionnel
 st.markdown("""
 <div class="main-header">
-	<h1>📍 Analyse des Villes Potentielles</h1>
-	<p style="font-size: 1.1rem; margin-top: 0.5rem;">Service de nettoyage de poubelles pour particuliers</p>
+	<h1>🗑️ Analyse de Marché - Nettoyage de Poubelles</h1>
+	<p style="font-size: 1.2rem; margin-top: 0.5rem;">Outil d'aide à la décision pour franchisés</p>
+	<p style="font-size: 0.9rem; opacity: 0.9;">36,744 villes analysées en France</p>
 </div>
 """, unsafe_allow_html=True)
 
 # Sidebar - Filtres
-st.sidebar.header("🔍 Filtres")
+st.sidebar.header("🔍 Filtres de Recherche")
 
 search_term = st.sidebar.text_input("🔎 Rechercher", placeholder="Ville ou département...")
 
 region_filter = st.sidebar.selectbox(
 	"Région",
 	["Toutes"] + sorted(df['region'].unique().tolist())
+)
+
+priority_filter = st.sidebar.multiselect(
+	"Niveau de Priorité",
+	["A", "B", "C", "D"],
+	default=["A", "B"]
 )
 
 min_population = st.sidebar.number_input(
@@ -148,11 +213,19 @@ min_population = st.sidebar.number_input(
 	step=1000
 )
 
+min_revenue = st.sidebar.number_input(
+	"Revenu annuel minimum (€)",
+	min_value=0,
+	max_value=int(df['revenuAnnuel'].max()),
+	value=20000,
+	step=5000
+)
+
 min_score = st.sidebar.slider(
 	"Score minimal",
 	min_value=0,
 	max_value=100,
-	value=0,
+	value=50,
 	step=5
 )
 
@@ -168,22 +241,25 @@ if search_term:
 if region_filter != "Toutes":
 	filtered_df = filtered_df[filtered_df['region'] == region_filter]
 
+if priority_filter:
+	filtered_df = filtered_df[filtered_df['priorite'].isin(priority_filter)]
+
 filtered_df = filtered_df[filtered_df['population'] >= min_population]
+filtered_df = filtered_df[filtered_df['revenuAnnuel'] >= min_revenue]
 filtered_df = filtered_df[filtered_df['score'] >= min_score]
 
 # Tri
 sort_by = st.sidebar.selectbox(
 	"Trier par",
-	["Score", "Population 60+", "Revenu médian", "Clients potentiels", "Population totale"],
+	["Revenu Annuel", "Score", "Clients potentiels", "Population totale"],
 	index=0
 )
 
 sort_order = st.sidebar.radio("Ordre", ["Décroissant", "Croissant"])
 
 sort_mapping = {
+	"Revenu Annuel": "revenuAnnuel",
 	"Score": "score",
-	"Population 60+": "plus60ans",
-	"Revenu médian": "revenuMedian",
 	"Clients potentiels": "clientsPotentiels",
 	"Population totale": "population"
 }
@@ -193,314 +269,205 @@ filtered_df = filtered_df.sort_values(
 	ascending=(sort_order == "Croissant")
 )
 
-# Statistiques globales
+# Dashboard principal
+st.subheader("📊 Vue d'Ensemble du Marché")
+
 col1, col2, col3, col4, col5 = st.columns(5)
 
 with col1:
-	st.metric("🏙️ Villes analysées", len(filtered_df))
+	st.metric("🏙️ Villes Sélectionnées", f"{len(filtered_df):,}")
 
 with col2:
-	avg_score = round(filtered_df['score'].mean()) if len(filtered_df) > 0 else 0
-	st.metric("⭐ Score moyen", f"{avg_score}/100")
+	avg_revenue = filtered_df['revenuAnnuel'].mean() if len(filtered_df) > 0 else 0
+	st.metric("💰 Revenu Moyen", f"{avg_revenue:,.0f} €/an")
 
 with col3:
-	total_clients = filtered_df['clientsPotentiels'].sum()
-	st.metric("👥 Clients potentiels", f"{total_clients:,}")
+	total_revenue = filtered_df['revenuAnnuel'].sum()
+	st.metric("💵 Revenu Total", f"{total_revenue:,.0f} €/an")
 
 with col4:
-	if len(filtered_df) > 0:
-		best_city = filtered_df.nlargest(1, 'score').iloc[0]
-		st.metric("🥇 Meilleure ville", best_city['nom'], f"{best_city['score']}/100")
-	else:
-		st.metric("🥇 Meilleure ville", "N/A")
+	priority_a_count = len(filtered_df[filtered_df['priorite'] == 'A'])
+	st.metric("🟢 Villes Priorité A", f"{priority_a_count:,}")
 
 with col5:
-	total_pop = filtered_df['population'].sum()
-	st.metric("👥 Population totale", f"{total_pop:,}")
-
-# Classement des meilleures villes
-if len(filtered_df) > 0:
-	st.subheader("🏆 Top 20 des Meilleures Villes")
-	
-	col1, col2 = st.columns(2)
-	
-	with col1:
-		st.markdown("### 📊 Par Score Global")
-		top_score = filtered_df.nlargest(min(20, len(filtered_df)), 'score')[['nom', 'score', 'departement', 'region']].reset_index(drop=True)
-		for idx, row in top_score.iterrows():
-			emoji = get_score_emoji(row['score'])
-			st.markdown(f"{emoji} **{idx+1}. {row['nom']}** ({row['departement']}) - Score: **{row['score']}/100**")
-	
-	with col2:
-		st.markdown("### 👥 Par Clients Potentiels")
-		top_clients = filtered_df.nlargest(min(20, len(filtered_df)), 'clientsPotentiels')[['nom', 'clientsPotentiels', 'departement']].reset_index(drop=True)
-		for idx, row in top_clients.iterrows():
-			st.markdown(f"**{idx+1}. {row['nom']}** ({row['departement']}) - **{row['clientsPotentiels']:,}** clients")
+	total_clients = filtered_df['clientsPotentiels'].sum()
+	st.metric("👥 Clients Totaux", f"{total_clients:,}")
 
 st.markdown("---")
 
-# Carte interactive
-if len(filtered_df) > 0 and len(filtered_df) <= 10000:
-	st.subheader("🗺️ Carte Interactive des Villes")
-	
-	# Préparer les données pour la carte
-	map_data = filtered_df[['lat', 'lon', 'nom', 'score', 'departement']].copy()
-	map_data['color'] = map_data['score'].apply(score_to_rgb)
-	
-	# Créer la carte pydeck
-	layer = pdk.Layer(
-		'ScatterplotLayer',
-		data=map_data,
-		get_position='[lon, lat]',
-		get_color='color',
-		get_radius=2000,
-		pickable=True,
-	)
-	
-	view_state = pdk.ViewState(
-		latitude=46.603354,  # Centre de la France
-		longitude=1.888334,
-		zoom=5,
-		pitch=0,
-	)
-	
-	st.pydeck_chart(pdk.Deck(
-		layers=[layer],
-		initial_view_state=view_state,
-		tooltip={"text": "{nom} ({departement})\nScore: {score}/100"}
-	))
-	
-	st.caption("💡 Survolez les points pour voir les détails. Vert = score élevé, Rouge = score bas")
-elif len(filtered_df) > 10000:
-	st.info("⚠️ Carte désactivée pour plus de 10,000 villes. Utilisez les filtres pour réduire le nombre de résultats.")
-
-st.markdown("---")
-
-# Dashboard Analytique
+# Graphiques visuels
 if len(filtered_df) > 0:
-	st.subheader("📊 Analyse par Zones à Fort Potentiel")
+	st.subheader("📈 Analyse Visuelle")
 	
-	tab1, tab2, tab3 = st.tabs(["🌍 Par Région", "📍 Par Département", "📈 Synthèse"])
+	tab1, tab2, tab3 = st.tabs(["💰 Top Revenus", "🎯 Distribution Priorités", "🗺️ Analyse Régionale"])
 	
 	with tab1:
-		st.markdown("### Clients Potentiels par Région")
+		st.markdown("### Top 20 Villes par Revenu Annuel Potentiel")
+		top_revenue = filtered_df.nlargest(20, 'revenuAnnuel')[['nom', 'revenuAnnuel', 'clientsPotentiels', 'priorite']].reset_index(drop=True)
 		
-		# Agrégation par région
-		region_stats = filtered_df.groupby('region').agg({
-			'clientsPotentiels': 'sum',
-			'population': 'sum',
-			'score': 'mean',
-			'nom': 'count'
-		}).round(0)
-		region_stats.columns = ['Clients Potentiels', 'Population', 'Score Moyen', 'Nb Villes']
-		region_stats = region_stats.sort_values('Clients Potentiels', ascending=False)
-		
-		col1, col2 = st.columns([2, 1])
-		
-		with col1:
-			st.bar_chart(region_stats['Clients Potentiels'])
-		
-		with col2:
-			st.dataframe(
-				region_stats.style.format({
-					'Clients Potentiels': '{:,.0f}',
-					'Population': '{:,.0f}',
-					'Score Moyen': '{:.1f}',
-					'Nb Villes': '{:.0f}'
-				}),
-				use_container_width=True
-			)
+		fig = px.bar(
+			top_revenue,
+			x='nom',
+			y='revenuAnnuel',
+			color='priorite',
+			color_discrete_map={'A': '#10b981', 'B': '#3b82f6', 'C': '#f59e0b', 'D': '#ef4444'},
+			title="Revenu Annuel Potentiel par Ville",
+			labels={'revenuAnnuel': 'Revenu Annuel (€)', 'nom': 'Ville'},
+			height=500
+		)
+		fig.update_layout(showlegend=True, xaxis_tickangle=-45)
+		st.plotly_chart(fig, use_container_width=True)
 	
 	with tab2:
-		st.markdown("### Top 15 Départements à Fort Potentiel")
+		st.markdown("### Distribution des Villes par Niveau de Priorité")
+		priority_counts = filtered_df['priorite'].value_counts().reset_index()
+		priority_counts.columns = ['Priorité', 'Nombre']
 		
-		# Agrégation par département
-		dept_stats = filtered_df.groupby('departement').agg({
-			'clientsPotentiels': 'sum',
-			'score': 'mean',
-			'nom': 'count',
-			'population': 'sum'
-		}).round(0)
-		dept_stats.columns = ['Clients Potentiels', 'Score Moyen', 'Nb Villes', 'Population']
-		top_depts = dept_stats.nlargest(15, 'Clients Potentiels')
+		fig = px.pie(
+			priority_counts,
+			values='Nombre',
+			names='Priorité',
+			color='Priorité',
+			color_discrete_map={'A': '#10b981', 'B': '#3b82f6', 'C': '#f59e0b', 'D': '#ef4444'},
+			title="Répartition des Villes par Priorité",
+			height=500
+		)
+		st.plotly_chart(fig, use_container_width=True)
 		
-		col1, col2 = st.columns([2, 1])
-		
+		col1, col2 = st.columns(2)
 		with col1:
-			st.bar_chart(top_depts['Clients Potentiels'])
-		
+			st.dataframe(priority_counts, use_container_width=True)
 		with col2:
-			st.dataframe(
-				top_depts.style.format({
-					'Clients Potentiels': '{:,.0f}',
-					'Score Moyen': '{:.1f}',
-					'Nb Villes': '{:.0f}',
-					'Population': '{:,.0f}'
-				}),
-				use_container_width=True
-			)
+			priority_revenue = filtered_df.groupby('priorite')['revenuAnnuel'].sum().reset_index()
+			priority_revenue.columns = ['Priorité', 'Revenu Total (€)']
+			priority_revenue['Revenu Total (€)'] = priority_revenue['Revenu Total (€)'].apply(lambda x: f"{x:,.0f} €")
+			st.dataframe(priority_revenue, use_container_width=True)
 	
 	with tab3:
-		st.markdown("### Synthèse des Zones Prioritaires")
+		st.markdown("### Analyse par Région")
+		region_stats = filtered_df.groupby('region').agg({
+			'revenuAnnuel': 'sum',
+			'clientsPotentiels': 'sum',
+			'nom': 'count'
+		}).reset_index()
+		region_stats.columns = ['Région', 'Revenu Total', 'Clients Totaux', 'Nb Villes']
+		region_stats = region_stats.sort_values('Revenu Total', ascending=False)
 		
-		col1, col2, col3 = st.columns(3)
-		
-		with col1:
-			if len(region_stats) > 0:
-				best_region = region_stats.index[0]
-				best_region_clients = region_stats.iloc[0]['Clients Potentiels']
-				st.metric(
-					"🏆 Meilleure Région",
-					best_region,
-					f"{best_region_clients:,.0f} clients"
-				)
-		
-		with col2:
-			if len(top_depts) > 0:
-				best_dept = top_depts.index[0]
-				best_dept_clients = top_depts.iloc[0]['Clients Potentiels']
-				st.metric(
-					"🏆 Meilleur Département",
-					best_dept,
-					f"{best_dept_clients:,.0f} clients"
-				)
-		
-		with col3:
-			avg_clients_per_city = filtered_df['clientsPotentiels'].mean()
-			st.metric(
-				"📊 Moyenne par Ville",
-				f"{avg_clients_per_city:,.0f}",
-				"clients potentiels"
-			)
-		
-		st.markdown("---")
-		
-		# Recommandations
-		st.markdown("### 💡 Recommandations Stratégiques")
-		
-		if len(region_stats) > 0 and len(top_depts) > 0:
-			top_3_regions = region_stats.head(3)
-			top_3_depts = top_depts.head(3)
-			
-			st.markdown(f"""
-			**Zones prioritaires pour le déploiement :**
-			
-			🎯 **Régions à cibler en priorité :**
-			1. **{top_3_regions.index[0]}** - {top_3_regions.iloc[0]['Clients Potentiels']:,.0f} clients potentiels ({top_3_regions.iloc[0]['Nb Villes']:.0f} villes)
-			2. **{top_3_regions.index[1] if len(top_3_regions) > 1 else 'N/A'}** - {top_3_regions.iloc[1]['Clients Potentiels']:,.0f if len(top_3_regions) > 1 else 0} clients potentiels
-			3. **{top_3_regions.index[2] if len(top_3_regions) > 2 else 'N/A'}** - {top_3_regions.iloc[2]['Clients Potentiels']:,.0f if len(top_3_regions) > 2 else 0} clients potentiels
-			
-			📍 **Départements à fort ROI :**
-			1. **{top_3_depts.index[0]}** - {top_3_depts.iloc[0]['Clients Potentiels']:,.0f} clients (Score moyen: {top_3_depts.iloc[0]['Score Moyen']:.1f}/100)
-			2. **{top_3_depts.index[1] if len(top_3_depts) > 1 else 'N/A'}** - {top_3_depts.iloc[1]['Clients Potentiels']:,.0f if len(top_3_depts) > 1 else 0} clients
-			3. **{top_3_depts.index[2] if len(top_3_depts) > 2 else 'N/A'}** - {top_3_depts.iloc[2]['Clients Potentiels']:,.0f if len(top_3_depts) > 2 else 0} clients
-			""")
+		fig = px.bar(
+			region_stats.head(15),
+			x='Région',
+			y='Revenu Total',
+			title="Top 15 Régions par Revenu Potentiel",
+			labels={'Revenu Total': 'Revenu Annuel Total (€)'},
+			height=500
+		)
+		fig.update_layout(xaxis_tickangle=-45)
+		st.plotly_chart(fig, use_container_width=True)
 
 st.markdown("---")
 
-# Méthodologie
-with st.expander("📊 Méthodologie de scoring", expanded=False):
-	st.markdown("""
-	**Pondération du score (adaptée au nettoyage de poubelles) :**
-	- 🏠 **35%** % de maisons (poubelles individuelles vs collectives)
-	- 👤 **25%** Taux de propriétaires (stabilité, investissement entretien)
-	- 🎯 **20%** Population 60+ ans (cible principale, besoin réel)
-	- 💰 **10%** Revenu médian (capacité à payer le service)
-	- 👥 **5%** Population totale (taille du marché)
-	- 👨‍👩‍👧 **5%** Familles 30-44 ans (enfants, besoin d'hygiène)
-    
-	**Pourquoi ces critères ?**
-	- **Maisons** : Les maisons ont des poubelles individuelles (vs poubelles collectives en appartement)
-	- **Propriétaires** : Investissent plus dans l'entretien de leur propriété
-	- **60+ ans** : Difficulté à nettoyer, pouvoir d'achat, besoin réel
-	- **Familles** : Plus de déchets, valorisent l'hygiène
-    
-	**Calcul des clients potentiels :**
-	- Taux de pénétration estimé : 10-15% des foyers de 60+ ans
-	- Taille moyenne des foyers : 2,2 personnes
-	""")
+# Plan de déploiement
+if len(filtered_df) > 0:
+	st.subheader("🚀 Plan de Déploiement Recommandé")
+	
+	priority_a = filtered_df[filtered_df['priorite'] == 'A']
+	priority_b = filtered_df[filtered_df['priorite'] == 'B']
+	priority_c = filtered_df[filtered_df['priorite'] == 'C']
+	
+	col1, col2, col3 = st.columns(3)
+	
+	with col1:
+		st.markdown("### 📅 Phase 1 (0-6 mois)")
+		st.markdown(f"**Villes Priorité A** : {len(priority_a)}")
+		st.markdown(f"**Investissement** : {len(priority_a) * 25000:,} €")
+		st.markdown(f"**Revenu Annuel** : {priority_a['revenuAnnuel'].sum():,.0f} €")
+		st.markdown(f"**ROI Estimé** : 12-18 mois")
+	
+	with col2:
+		st.markdown("### 📅 Phase 2 (6-12 mois)")
+		st.markdown(f"**Villes Priorité B** : {len(priority_b)}")
+		st.markdown(f"**Investissement** : {len(priority_b) * 25000:,} €")
+		st.markdown(f"**Revenu Annuel** : {priority_b['revenuAnnuel'].sum():,.0f} €")
+		st.markdown(f"**ROI Estimé** : 18-24 mois")
+	
+	with col3:
+		st.markdown("### 📅 Phase 3 (12-24 mois)")
+		st.markdown(f"**Villes Priorité C** : {len(priority_c)}")
+		st.markdown(f"**Investissement** : {len(priority_c) * 25000:,} €")
+		st.markdown(f"**Revenu Annuel** : {priority_c['revenuAnnuel'].sum():,.0f} €")
+		st.markdown(f"**ROI Estimé** : 24-36 mois")
+
+st.markdown("---")
 
 # Tableau des résultats
-st.subheader("📋 Résultats détaillés")
+st.subheader("📋 Résultats Détaillés")
 
 if len(filtered_df) > 0:
-	# Préparation de l'affichage
 	display_df = filtered_df[[
-		'nom', 'departement', 'region', 'score', 'population', 
-		'plus60ans', 'personnes60plus', 'revenuMedian', 
-		'tauxProprietaires', 'zoneChalandise', 
-		'foyersPotentiels', 'clientsPotentiels'
+		'nom', 'departement', 'region', 'priorite', 'score', 
+		'revenuAnnuel', 'clientsPotentiels', 'population',
+		'pct_maison', 'tauxProprietaires', 'plus60ans', 'saturation'
 	]].copy()
-    
-	# Fonction pour colorer le score
-	def color_score(val):
-		if val >= 80:
-			return 'background-color: #d4edda; color: #155724; font-weight: bold'
-		elif val >= 60:
-			return 'background-color: #d1ecf1; color: #0c5460; font-weight: bold'
-		elif val >= 40:
-			return 'background-color: #fff3cd; color: #856404; font-weight: bold'
-		else:
-			return 'background-color: #f8d7da; color: #721c24; font-weight: bold'
-    
-	# Renommage des colonnes
+	
 	display_df.columns = [
-		'Ville', 'Département', 'Région', 'Score', 'Population', 
-		'60+ (%)', '60+ (nb)', 'Revenu médian', 'Proprio (%)', 'Zone', 
-		'Foyers pot.', 'Clients pot.'
+		'Ville', 'Département', 'Région', 'Priorité', 'Score',
+		'Revenu Annuel (€)', 'Clients', 'Population',
+		'% Maisons', '% Proprio', '% 60+', 'Saturation'
 	]
-    
-	# Affichage avec ou sans style selon la taille
+	
+	# Affichage sans style si trop de lignes
 	if len(display_df) > 5000:
-		# Pour les grands ensembles de données, afficher sans style
 		st.info(f"⚠️ Affichage de {len(display_df):,} villes. Le style est désactivé pour améliorer les performances.")
 		st.dataframe(display_df, use_container_width=True, height=600)
 	else:
-		# Pour les petits ensembles, afficher avec style
-		styled_df = display_df.style.applymap(
-			color_score, 
-			subset=['Score']
-		).format({
-			'Population': '{:,.0f}',
-			'Revenu médian': '{:,.0f} €',
-			'60+ (nb)': '{:,.0f}',
-			'Foyers pot.': '{:,.0f}',
-			'Clients pot.': '{:,.0f}',
-			'60+ (%)': '{:.1f}%',
-			'Proprio (%)': '{:.0f}%',
-			'Score': '{:.0f}/100'
-		})
-		st.dataframe(styled_df, use_container_width=True, height=600)
-    
+		st.dataframe(display_df, use_container_width=True, height=600)
+	
 	# Bouton de téléchargement
 	csv = display_df.to_csv(index=False).encode('utf-8')
 	st.download_button(
 		label="📥 Télécharger les résultats (CSV)",
 		data=csv,
-		file_name='analyse_villes.csv',
+		file_name='analyse_villes_franchise.csv',
 		mime='text/csv',
 	)
-    
-	# Top 10
-	st.subheader("🏆 Top 10 des villes")
-	top10 = filtered_df.nlargest(10, 'score')[['nom', 'score', 'clientsPotentiels', 'plus60ans', 'revenuMedian']]
-    
-	col1, col2 = st.columns([2, 1])
-    
-	with col1:
-		st.bar_chart(top10.set_index('nom')['score'])
-    
-	with col2:
-		for idx, row in top10.iterrows():
-			st.markdown(f"""
-			**{row['nom']}**  
-			Score: {row['score']}/100  
-			Clients: {row['clientsPotentiels']}  
-			---
-			""")
 else:
 	st.warning("⚠️ Aucune ville ne correspond aux critères de filtrage")
 
+# Méthodologie
+st.markdown("---")
+with st.expander("📊 Méthodologie & Calculs", expanded=False):
+	st.markdown("""
+	### Scoring (0-100 points)
+	
+	**Pondération adaptée au nettoyage de poubelles :**
+	- 🏠 **35%** % de maisons (poubelles individuelles vs collectives)
+	- 👤 **25%** Taux de propriétaires (stabilité, investissement)
+	- 🎯 **20%** Population 60+ ans (cible principale, besoin réel)
+	- 💰 **10%** Revenu médian (capacité à payer)
+	- 👥 **5%** Population totale (taille du marché)
+	- 👨‍👩‍👧 **5%** Familles 30-44 ans (enfants, hygiène)
+	
+	### Calcul du Revenu Annuel
+	
+	**Formule** : Clients Potentiels × 15€/mois × 12 mois
+	- **Prix** : 15€/mois par client
+	- **Clients** : 10-15% des foyers de 60+ ans
+	
+	### Niveaux de Priorité
+	
+	- **A (Priorité Maximale)** : Score ≥ 75 ET Revenu ≥ 50,000€
+	- **B (Priorité Élevée)** : Score ≥ 60 ET Revenu ≥ 30,000€
+	- **C (Potentiel Moyen)** : Score ≥ 45
+	- **D (Faible Priorité)** : Score < 45
+	
+	### Investissement Franchise
+	
+	- **Coût par ville** : 25,000€ (équipement, marketing, formation)
+	- **ROI Priorité A** : 12-18 mois
+	- **ROI Priorité B** : 18-24 mois
+	- **ROI Priorité C** : 24-36 mois
+	""")
+
 # Footer
 st.markdown("---")
-st.markdown("💡 **Astuce :** Ajustez les filtres dans la barre latérale pour affiner votre recherche")
+st.markdown("💡 **Astuce** : Utilisez les filtres pour affiner votre stratégie de déploiement par région ou niveau de priorité")
